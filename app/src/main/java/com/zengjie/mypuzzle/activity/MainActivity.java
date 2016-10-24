@@ -4,12 +4,16 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -24,6 +28,7 @@ import com.zengjie.mypuzzle.R;
 import com.zengjie.mypuzzle.adapter.GridPicListAdapter;
 import com.zengjie.mypuzzle.util.ScreenUtil;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,10 +49,22 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private String[] mCustomItems = new String[]{"本地图册","相机拍照"};
 
+    //返回码：系统图库
+    private static final int  RESULT_IMAGE = 100;
+    //返回码：相机
+    private static final int  RESULT_CAMERA = 200;
+    //IMAGE TYPE
+    private static final String IMAGE_TYPE = "image/*";
+    //Temp照片路径
+    public static String TEMP_IMAGE_PATH;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        TEMP_IMAGE_PATH = Environment.getExternalStorageDirectory().getPath()+"/temp.png";
+
         initViews();
         //数据适配器
         mGridView.setAdapter(new GridPicListAdapter(this,bitmaps));
@@ -81,16 +98,45 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if(which == 0){
                     //本地图册
                     Intent intent = new Intent(Intent.ACTION_PICK,null);
-
-
+                    intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, IMAGE_TYPE);
+                    startActivityForResult(intent,RESULT_IMAGE);
                 } else if(which == 1){
-                    //相机拍照
-
+                    //系统相机
+                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    Uri photoUri = Uri.fromFile(new File(TEMP_IMAGE_PATH));
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT,photoUri);
+                    startActivityForResult(intent,RESULT_CAMERA);
                 }
             }
         });
+        builder.create().show();
+    }
 
-
+    /**
+     * 调用图库、相机回调方法
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode == RESULT_OK){
+            if(requestCode == RESULT_IMAGE && data != null){
+                //相册
+                Cursor cursor = this.getContentResolver().query(data.getData(),null,null,null,null);
+                cursor.moveToFirst();
+                String imagePath = cursor.getString(cursor.getColumnIndex("_data"));
+                Intent intent = new Intent(MainActivity.this,PuzzleMain.class);
+                intent.putExtra("picPath",imagePath);
+                intent.putExtra("mType",mType);
+                cursor.close();
+                startActivity(intent);
+            } else if(requestCode == RESULT_CAMERA){
+                //相机
+                Intent intent = new Intent(MainActivity.this,PuzzleMain.class);
+                intent.putExtra("mPicPath",TEMP_IMAGE_PATH);
+                intent.putExtra("mType",mType);
+                startActivity(intent);
+            }
+        }
     }
 
     /**
