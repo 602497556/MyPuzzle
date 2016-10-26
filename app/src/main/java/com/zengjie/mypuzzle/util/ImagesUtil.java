@@ -49,7 +49,7 @@ public class ImagesUtil {
         //保存最后一个图片在拼图完成时填充
         PuzzleMain.mLastBitmap = bitmapItems.get( type*type - 1);
         //设置最后一个为空Item
-        bitmapItems.remove( type*type - 1);
+            bitmapItems.remove( type*type - 1);
         GameUtil.mItemBeans.remove( type*type -1 );
         Bitmap blankBitmap = BitmapFactory.decodeResource(
                 context.getResources(),

@@ -98,7 +98,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if(which == 0){
                     //本地图册
                     Intent intent = new Intent(Intent.ACTION_PICK,null);
-                    intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, IMAGE_TYPE);
+                    intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                            IMAGE_TYPE);
                     startActivityForResult(intent,RESULT_IMAGE);
                 } else if(which == 1){
                     //系统相机
@@ -121,7 +122,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if(resultCode == RESULT_OK){
             if(requestCode == RESULT_IMAGE && data != null){
                 //相册
-                Cursor cursor = this.getContentResolver().query(data.getData(),null,null,null,null);
+                Cursor cursor = this.getContentResolver().query(data.getData(),
+                        null,null,null,null);
                 cursor.moveToFirst();
                 String imagePath = cursor.getString(cursor.getColumnIndex("_data"));
                 Intent intent = new Intent(MainActivity.this,PuzzleMain.class);

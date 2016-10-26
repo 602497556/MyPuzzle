@@ -3,13 +3,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/rl_puzzle_main_main_layout"
     android:background="#3EC5FF">
     
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="80dp"
         android:id="@+id/ll_puzzle_main_spinner"
         android:paddingTop="10dp"
+        android:paddingBottom="20dp"
         android:gravity="center_horizontal">
 
         <TextView
@@ -24,6 +26,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/tv_puzzle_main_counts"
+            android:layout_gravity="center_vertical"
             android:text="1"
             android:textSize="25sp"
             android:textColor="#ffffff"/>
@@ -32,7 +35,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginLeft="30dp"
+            android:layout_marginLeft="40dp"
             android:text="时间："
             android:textSize="25sp"
             android:textColor="#ffffff"/>
@@ -41,6 +44,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/tv_puzzle_main_time"
+            android:layout_gravity="center_vertical"
             android:text="10"
             android:textSize="25sp"
             android:textColor="#ffffff"/>
@@ -53,31 +57,33 @@
         android:id="@+id/ll_puzzle_main_btns"
         android:layout_alignParentBottom="true"
         android:gravity="center_horizontal"
-        android:paddingBottom="10dp">
+        android:paddingBottom="30dp">
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/btn_puzzle_main_img"
             android:text="原图"
-            android:textColor="#3EC5FF"
-            android:textSize="25sp"/>
+            style="@style/btn_style"
+            android:background="@drawable/white_button"/>
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/btn_puzzle_main_restart"
             android:text="重置"
-            android:textColor="#3EC5FF"
-            android:textSize="25sp"/>
+            style="@style/btn_style"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/white_button"/>
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/btn_puzzle_main_back"
             android:text="返回"
-            android:textColor="#3EC5FF"
-            android:textSize="25sp"/>
+            style="@style/btn_style"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/white_button"/>
 
     </LinearLayout>
     
@@ -87,7 +93,6 @@
         android:id="@+id/gv_puzzle_main"
         android:layout_below="@id/ll_puzzle_main_spinner"
         android:layout_above="@id/ll_puzzle_main_btns"
-        android:layout_centerInParent="true"
-        android:layout_margin="10dp"/>
+        android:layout_centerInParent="true"/>
 
 </RelativeLayout>

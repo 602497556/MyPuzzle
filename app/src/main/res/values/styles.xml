@@ -7,5 +7,11 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
+    
+    <style name="btn_style">
+        <item name="android:background">#ffffff</item>
+        <item name="android:textSize">25sp</item>
+        <item name="android:textColor">#3EC5FF</item>
+    </style>
 
 </resources>

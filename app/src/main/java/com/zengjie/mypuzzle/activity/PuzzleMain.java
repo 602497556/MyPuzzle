@@ -4,17 +4,34 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.GridLayout;
 import android.widget.GridView;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.zengjie.mypuzzle.R;
+import com.zengjie.mypuzzle.adapter.GridItemsAdapter;
+import com.zengjie.mypuzzle.bean.ItemBean;
+import com.zengjie.mypuzzle.util.GameUtil;
 import com.zengjie.mypuzzle.util.ImagesUtil;
 import com.zengjie.mypuzzle.util.ScreenUtil;
 
-public class PuzzleMain extends Activity {
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class PuzzleMain extends Activity implements View.OnClickListener {
 
     //拼图完成时显示的最后一个图片
     public static Bitmap mLastBitmap;
@@ -25,20 +42,47 @@ public class PuzzleMain extends Activity {
     private int mResId;
     private String mPicPath;
     private GridView mGvPuzzleMainDetail;
+    //GridView适配器
+    private GridItemsAdapter mAdapter;
+    //切图后的图片
+    private List<Bitmap> mBitmapItemLists = new ArrayList<>();
     //Button
     private Button mBtnBack;
     private Button mBtnRestart;
     private Button mBtnImg;
+    //原图ImageView
+    private ImageView mImageView;
     //Flag 是否已显示原图
     private boolean mIsShowImg;
     //显示步数
     private TextView mTvPuzzleMainCounts;
     //计时器
     private TextView mTvTimer;
+    //计时器类
+    private Timer mTimer;
+    //计时器线程
+    private TimerTask mTimeTask;
     //步数显示
     public static int COUNT_INDEX = 0;
     //计时显示
     public static int TIMER_INDEX = 0;
+    /**
+     * UI更新的Handler
+     */
+    private Handler mHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case 1:
+                    //更新计时器
+                    TIMER_INDEX++;
+                    mTvTimer.setText(""+TIMER_INDEX);
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
 
 
     @Override
@@ -61,7 +105,158 @@ public class PuzzleMain extends Activity {
         handlerImage(picSelectedTemp);
         //初始化Views
         initViews();
+        //生成游戏数据
+        generateGame();
+        //GridView点击事件
+        mGvPuzzleMainDetail.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                //判断是否可以移动
+                if(GameUtil.isMovable(position)){
+                    //交换点击Item与空格的位置
+                    GameUtil.swapItems(GameUtil.mItemBeans.get(position),
+                            GameUtil.mBlankItemBean);
+                    //重新获取数据
+                    recreateData();
+                    //通知GridView更改UI
+                    mAdapter.notifyDataSetChanged();
+                    //更新步数
+                    COUNT_INDEX++;
+                    mTvPuzzleMainCounts.setText(""+COUNT_INDEX);
+                    if(GameUtil.isSuccess()){
+                        //将最后一张图显示完整
+                        recreateData();
+                        mBitmapItemLists.remove(TYPE * TYPE -1);
+                        mBitmapItemLists.add(mLastBitmap);
+                        //通知GridView更改UI
+                        mAdapter.notifyDataSetChanged();
+                        Toast.makeText(PuzzleMain.this,"拼图成功！",
+                                Toast.LENGTH_LONG).show();
+                        mGvPuzzleMainDetail.setEnabled(false);
+                        mTimer.cancel();
+                        mTimeTask.cancel();
+                    }
+                }
+            }
+        });
+        //返回按钮点击事件
+        mBtnBack.setOnClickListener(this);
+        //显示原图按钮点击事件
+        mBtnImg.setOnClickListener(this);
+        //重置按钮点击事件
+        mBtnRestart.setOnClickListener(this);
+    }
 
+    /**
+     * Button点击事件
+     */
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            //返回按钮点击事件
+            case R.id.btn_puzzle_main_back:
+                PuzzleMain.this.finish();
+                break;
+            //显示原图按钮点击事件
+            case R.id.btn_puzzle_main_img:
+                Animation animHide = AnimationUtils.loadAnimation(
+                        this,R.anim.image_hide_anim);
+                Animation animShow = AnimationUtils.loadAnimation(
+                        this,R.anim.image_show_anim);
+                if(mIsShowImg){
+                    mImageView.startAnimation(animHide);
+                    mImageView.setVisibility(View.GONE);
+                    mIsShowImg = false;
+                } else {
+                    mImageView.startAnimation(animShow);
+                    mImageView.setVisibility(View.VISIBLE);
+                    mIsShowImg = true;
+                }
+                break;
+            //重置按钮点击事件
+            case R.id.btn_puzzle_main_restart:
+                cleanConfig();
+                generateGame();
+                recreateData();
+                //通知GridView更改UI
+                mTvPuzzleMainCounts.setText(""+COUNT_INDEX);
+                mAdapter.notifyDataSetChanged();
+                mGvPuzzleMainDetail.setEnabled(true);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * 返回时调用
+     */
+    @Override
+    protected void onStop() {
+        super.onStop();
+        //清空相关参数配置
+        cleanConfig();
+        this.finish();
+    }
+
+    /**
+     * 清空相关参数配置
+     */
+    private void cleanConfig() {
+        GameUtil.mItemBeans.clear();
+        //停止计时器
+        mTimer.cancel();
+        mTimeTask.cancel();
+        COUNT_INDEX = 0;
+        TIMER_INDEX = 0;
+        //清除拍摄的照片
+        if(mPicPath != null){
+            //删除照片
+            File file = new File(MainActivity.TEMP_IMAGE_PATH);
+            if(file.exists()){
+                file.delete();
+            }
+        }
+    }
+
+    /**
+     * 重新获取图片
+     */
+    private void recreateData() {
+        mBitmapItemLists.clear();
+        for(ItemBean temp : GameUtil.mItemBeans){
+            mBitmapItemLists.add(temp.getBitmap());
+        }
+    }
+
+    /**
+     * 生成游戏数据
+     */
+    private void generateGame() {
+        //切图 获取初始拼图数据 正常顺序
+        new ImagesUtil().createInitBitmaps(TYPE,mPicSelected,this);
+        //生成随机数据
+        GameUtil.getPuzzleGenerator();
+        //获取bitmap集合
+        for(ItemBean temp : GameUtil.mItemBeans){
+            mBitmapItemLists.add(temp.getBitmap());
+        }
+        //数据适配器
+        mAdapter = new GridItemsAdapter(this, mBitmapItemLists);
+        mGvPuzzleMainDetail.setAdapter(mAdapter);
+        //启用计时器
+        mTimer = new Timer();
+        //计时器线程
+        mTimeTask = new TimerTask() {
+            @Override
+            public void run() {
+                Message msg = new Message();
+                msg.what = 1;
+                mHandler.sendMessage(msg);
+            }
+        };
+        //每1000ms执行，延迟0s
+        mTimer.schedule(mTimeTask,0,1000);
     }
 
     /**
@@ -101,6 +296,18 @@ public class PuzzleMain extends Activity {
      * 添加显示原图的View
      */
     private void addImgView() {
+        RelativeLayout relativeLayout = (RelativeLayout) findViewById(
+                R.id.rl_puzzle_main_main_layout);
+        mImageView = new ImageView(this);
+        mImageView.setImageBitmap(mPicSelected);
+        int x = (int) (mPicSelected.getWidth() * 0.9f);
+        int y = (int) (mPicSelected.getHeight() * 0.9f);
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                x, y);
+        params.addRule(RelativeLayout.CENTER_IN_PARENT);
+        mImageView.setLayoutParams(params);
+        relativeLayout.addView(mImageView);
+        mImageView.setVisibility(View.GONE);
     }
 
     /**
@@ -115,6 +322,7 @@ public class PuzzleMain extends Activity {
         mPicSelected = new ImagesUtil().resizeBitmap(
                 screenWidth * 0.8f, screenHeight * 0.6f, bitmap);
     }
+
 
 
 }

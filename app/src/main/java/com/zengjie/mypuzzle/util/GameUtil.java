@@ -138,7 +138,7 @@ public class GameUtil {
                     tempBean.getItemId() == tempBean.getBitmapId()){
                 continue;
             } else if(tempBean.getBitmapId() == 0 &&
-                    tempBean.getBitmapId() == PuzzleMain.TYPE*PuzzleMain.TYPE){
+                    tempBean.getItemId() == PuzzleMain.TYPE * PuzzleMain.TYPE){
                 continue;
             } else {
                 return false;
